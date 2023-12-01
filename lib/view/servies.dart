@@ -39,12 +39,7 @@ class NotificationService {
 
 //Show a notification with an optional payload that will be passed back to the app when a notification is tapped.
   Future showNotification({int id = 0, String? title, String? body, String? payLoad}) async {
-    return notificationsPlugin.show(
-      id,
-      title,
-      body,
-      notificationDetails(),
-    );
+    return notificationsPlugin.show(id, title, body, notificationDetails());
   }
 
   // Future<void> checkNotificationAppLaunchDetails() async {
@@ -88,7 +83,7 @@ class NotificationService {
   }) async {
     pendingNotification = await notificationsPlugin.pendingNotificationRequests();
     return notificationsPlugin.zonedSchedule(
-      pendingNotification.last.id + 1,
+      (pendingNotification.isEmpty ? 0 : pendingNotification.last.id) + 1,
       title,
       body,
       tz.TZDateTime.from(

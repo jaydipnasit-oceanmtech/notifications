@@ -14,7 +14,7 @@ class HomeNotifications extends StatefulWidget {
 
 class _HomeNotificationsState extends State<HomeNotifications> {
   List<DateTime> scheduledTimes = [];
-  DateTime scheduledTimes1 = DateTime.now();
+  DateTime selectScheduledTimes = DateTime.now();
   bool isscheduled = false;
 
   @override
@@ -69,58 +69,22 @@ class _HomeNotificationsState extends State<HomeNotifications> {
   }
 
   Future<void> selectDateTime(BuildContext context) async {
-    // DateTime? pickedDateTime = await DatePickerBdaya.showDateTimePicker(
-    //   context,
-    //   showTitleActions: true,
-    //   onChanged: (date) {},
-    //   onConfirm: (date) {
-    //     setState(() {
-    //       scheduledTimes.add(date);
-    //     });
-    //   },
-    // );
     DatePickerBdaya.showDateTimePicker(context,
         showTitleActions: true,
-        onChanged: (date) => scheduledTimes1 = date,
+        onChanged: (date) => selectScheduledTimes = date,
         onConfirm: (date) {
           setState(() {
             isscheduled = false;
           });
         });
-
-    // if (pickedDateTime != null) {
-    //   setState(() {
-    //     scheduledTimes.add(pickedDateTime);
-    //   });
-    // }
   }
 
-  // void scheduleNotification() {
-  //   for (DateTime scheduledTime in scheduledTimes) {
-  //     debugPrint('Notification Scheduled for $scheduledTime');
-  //     NotificationService().scheduleNotification(
-  //       id: scheduledTimes.indexOf(scheduledTime), // Use index as ID for uniqueness
-  //       title: 'Scheduled Notification',
-  //       body: '$scheduledTime',
-  //       scheduledNotificationDateTime: scheduledTime,
-  //     );
-  //   }
-  //   ScaffoldMessenger.of(context).showSnackBar(
-  //     const SnackBar(
-  //       content: Center(
-  //         child: Text("Notifications Scheduled"),
-  //       ),
-  //     ),
-  //   );
-  // }
-
-  int a = 0;
   void scheduleNotification() {
     setState(() {
-      scheduledTimes.add(scheduledTimes1);
+      scheduledTimes.add(selectScheduledTimes);
       isscheduled = true;
     });
-    if (scheduledTimes1.isAfter(DateTime.now())) {
+    if (selectScheduledTimes.isAfter(DateTime.now())) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Center(
@@ -133,14 +97,12 @@ class _HomeNotificationsState extends State<HomeNotifications> {
       );
       NotificationService().scheduleNotification(
         title: 'Scheduled Notification',
-        body: '$scheduledTimes1',
-        scheduledNotificationDateTime: scheduledTimes1,
+        body: '$selectScheduledTimes',
+        scheduledNotificationDateTime: selectScheduledTimes,
       );
     } else {
-      debugPrint('Scheduled time $scheduledTimes1 is not in the future');
+      debugPrint('Scheduled time $selectScheduledTimes is not in the future');
     }
-
-    print(a);
   }
 
   void clearScheduledTimes() {
