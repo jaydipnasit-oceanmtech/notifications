@@ -5,6 +5,7 @@ import 'package:timezone/timezone.dart' as tz;
 class NotificationService {
   final FlutterLocalNotificationsPlugin notificationsPlugin = FlutterLocalNotificationsPlugin();
 
+  List<PendingNotificationRequest> pendingNotification = [];
   Future<void> initNotification() async {
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('mipmap/ic_launcher');
@@ -26,27 +27,68 @@ class NotificationService {
 
   notificationDetails() {
     return const NotificationDetails(
-        android: AndroidNotificationDetails('channelId', 'channelName', importance: Importance.max),
-        iOS: DarwinNotificationDetails());
+      android: AndroidNotificationDetails(
+        'channelId',
+        'channelName',
+        // groupKey: "Common Message",
+        importance: Importance.max,
+      ),
+      iOS: DarwinNotificationDetails(),
+    );
   }
 
+//Show a notification with an optional payload that will be passed back to the app when a notification is tapped.
   Future showNotification({int id = 0, String? title, String? body, String? payLoad}) async {
-    return notificationsPlugin.show(id, title, body, await notificationDetails());
+    return notificationsPlugin.show(
+      id,
+      title,
+      body,
+      notificationDetails(),
+    );
   }
 
-  Future scheduleNotificationCancel() async {
-    return notificationsPlugin.cancel(0);
+  // Future<void> checkNotificationAppLaunchDetails() async {
+  //   InitializationSettings initializationSettings = const InitializationSettings(
+  //     android: AndroidInitializationSettings('@drawable/launch_background'),
+  //   );
+  //   await notificationsPlugin.initialize(initializationSettings);
+
+  //   NotificationAppLaunchDetails? launchDetails = await notificationsPlugin.getNotificationAppLaunchDetails();
+
+  //   if (launchDetails!.didNotificationLaunchApp) {
+  //     print('The app was launched via notification!');
+  //     print('Notification payload: $launchDetails');
+  //   } else {
+  //     print('The app was launched normally.');
+  //   }
+  // }
+
+  Future<void> checkActiveNotifications() async {
+    //List<ActiveNotification> activeNotifications = await notificationsPlugin.getActiveNotifications();
+    pendingNotification = await notificationsPlugin.pendingNotificationRequests();
+    print('length ${pendingNotification.length}');
+    for (PendingNotificationRequest notification in pendingNotification) {
+      print('Id: ${notification.id}');
+      print('Title: ${notification.title}');
+      print('Body: ${notification.body}');
+      print('Payload: ${notification.payload}');
+      print('------------------------');
+    }
+  }
+
+  Future scheduleNotificationCancelAll() async {
+    return notificationsPlugin.cancelAll();
   }
 
   Future scheduleNotification({
-    int id = 0,
     String? title,
     String? body,
     String? payLoad,
     required DateTime scheduledNotificationDateTime,
   }) async {
+    pendingNotification = await notificationsPlugin.pendingNotificationRequests();
     return notificationsPlugin.zonedSchedule(
-      id,
+      pendingNotification.last.id + 1,
       title,
       body,
       tz.TZDateTime.from(
@@ -54,14 +96,9 @@ class NotificationService {
         tz.local,
       ),
       await notificationDetails(),
+      // ignore: deprecated_member_use
       androidAllowWhileIdle: true,
       uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
     );
   }
 }
-// }
-// FlutterLocalNotificationPluginRegistrantCallback{(register) in GeneratedPluginRegistrant.register(with:register)}
-//     GeneratedPluginRegistrant.register(with: self)
-//     if #available(iOS 10.0, *) {
-//       UNUserNotificationCenter.current().delegate = self as? UNUserNotificationCenterDelegate
-//     }

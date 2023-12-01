@@ -13,49 +13,32 @@ class HomeNotifications extends StatefulWidget {
 }
 
 class _HomeNotificationsState extends State<HomeNotifications> {
-  DateTime? scheduleTime;
+  List<DateTime> scheduledTimes = [];
+  DateTime scheduledTimes1 = DateTime.now();
+  bool isscheduled = false;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Center(
-            child: scheduleTime != null
-                ? Text(DateFormat('dd/MM/yyyy | hh:mm a').format(scheduleTime!))
-                : const SizedBox.shrink()),
+        if (scheduledTimes.isNotEmpty) ...[
+          for (DateTime scheduledTime in scheduledTimes)
+            Text(
+              DateFormat('dd/MM/yyyy | hh:mm a').format(scheduledTime),
+            ),
+        ],
         const SizedBox(height: 10),
         commonButton(
           icon: Icons.date_range,
           onPressed: () {
-            DatePickerBdaya.showDateTimePicker(
-              context,
-              showTitleActions: true,
-              onChanged: (date) => scheduleTime = date,
-              onConfirm: (date) {},
-            );
+            selectDateTime(context);
           },
           text: "Datepick",
         ),
         commonButton(
             onPressed: () {
-              if (scheduleTime != null) {
-                debugPrint('Notification Scheduled for $scheduleTime');
-                NotificationService()
-                    .scheduleNotification(
-                  title: 'Scheduled Notification',
-                  body: '$scheduleTime',
-                  scheduledNotificationDateTime: scheduleTime!,
-                )
-                    .then((value) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Center(
-                        child: Text("Done"),
-                      ),
-                    ),
-                  );
-                });
-              }
+              isscheduled == false ? scheduleNotification() : null;
             },
             icon: Icons.schedule_send,
             text: "Schedule notifications"),
@@ -70,12 +53,100 @@ class _HomeNotificationsState extends State<HomeNotifications> {
           text: "Instance Notification",
         ),
         commonButton(
-          onPressed: () => NotificationService().scheduleNotificationCancel(),
+          onPressed: () {
+            clearScheduledTimes();
+            NotificationService().scheduleNotificationCancelAll();
+          },
           icon: Icons.cancel,
           text: "Schedule Cancel",
         ),
+        commonButton(
+            onPressed: () => NotificationService().checkActiveNotifications(),
+            icon: Icons.get_app_rounded,
+            text: "GetNotifications")
       ]),
     );
+  }
+
+  Future<void> selectDateTime(BuildContext context) async {
+    // DateTime? pickedDateTime = await DatePickerBdaya.showDateTimePicker(
+    //   context,
+    //   showTitleActions: true,
+    //   onChanged: (date) {},
+    //   onConfirm: (date) {
+    //     setState(() {
+    //       scheduledTimes.add(date);
+    //     });
+    //   },
+    // );
+    DatePickerBdaya.showDateTimePicker(context,
+        showTitleActions: true,
+        onChanged: (date) => scheduledTimes1 = date,
+        onConfirm: (date) {
+          setState(() {
+            isscheduled = false;
+          });
+        });
+
+    // if (pickedDateTime != null) {
+    //   setState(() {
+    //     scheduledTimes.add(pickedDateTime);
+    //   });
+    // }
+  }
+
+  // void scheduleNotification() {
+  //   for (DateTime scheduledTime in scheduledTimes) {
+  //     debugPrint('Notification Scheduled for $scheduledTime');
+  //     NotificationService().scheduleNotification(
+  //       id: scheduledTimes.indexOf(scheduledTime), // Use index as ID for uniqueness
+  //       title: 'Scheduled Notification',
+  //       body: '$scheduledTime',
+  //       scheduledNotificationDateTime: scheduledTime,
+  //     );
+  //   }
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     const SnackBar(
+  //       content: Center(
+  //         child: Text("Notifications Scheduled"),
+  //       ),
+  //     ),
+  //   );
+  // }
+
+  int a = 0;
+  void scheduleNotification() {
+    setState(() {
+      scheduledTimes.add(scheduledTimes1);
+      isscheduled = true;
+    });
+    if (scheduledTimes1.isAfter(DateTime.now())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Center(
+            child: Text(
+              'Scheduled Notification',
+              style: TextStyle(fontSize: 16.0),
+            ),
+          ),
+        ),
+      );
+      NotificationService().scheduleNotification(
+        title: 'Scheduled Notification',
+        body: '$scheduledTimes1',
+        scheduledNotificationDateTime: scheduledTimes1,
+      );
+    } else {
+      debugPrint('Scheduled time $scheduledTimes1 is not in the future');
+    }
+
+    print(a);
+  }
+
+  void clearScheduledTimes() {
+    setState(() {
+      scheduledTimes.clear();
+    });
   }
 }
 
