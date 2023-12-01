@@ -34,6 +34,10 @@ class NotificationService {
     return notificationsPlugin.show(id, title, body, await notificationDetails());
   }
 
+  Future scheduleNotificationCancel() async {
+    return notificationsPlugin.cancel(0);
+  }
+
   Future scheduleNotification({
     int id = 0,
     String? title,
