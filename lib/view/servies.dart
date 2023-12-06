@@ -1,54 +1,72 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-
+import 'package:rxdart/subjects.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 class NotificationService {
-  final FlutterLocalNotificationsPlugin notificationsPlugin = FlutterLocalNotificationsPlugin();
+  static final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+  static final onClickNotification = BehaviorSubject<String>();
 
-  List<PendingNotificationRequest> pendingNotification = [];
-  Future<void> initNotification() async {
-    const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('mipmap/ic_launcher');
-
-    var initializationSettingsIOS = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-      onDidReceiveLocalNotification: (int id, String? title, String? body, String? payload) async {},
-    );
-
-    var initializationSettings =
-        InitializationSettings(android: initializationSettingsAndroid, iOS: initializationSettingsIOS);
-    await notificationsPlugin.initialize(
-      initializationSettings,
-      onDidReceiveNotificationResponse: (NotificationResponse notificationResponse) async {},
-    );
+  static void onNotificationTap(NotificationResponse notificationResponse) {
+    onClickNotification.add(notificationResponse.payload!);
   }
 
-  notificationDetails() {
+  static List<PendingNotificationRequest> pendingNotification = [];
+
+  static Future initNotification() async {
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+    final DarwinInitializationSettings initializationSettingsDarwin = DarwinInitializationSettings(
+      onDidReceiveLocalNotification: (id, title, body, payload) => null,
+    );
+    const LinuxInitializationSettings initializationSettingsLinux =
+        LinuxInitializationSettings(defaultActionName: 'Open notification');
+    final InitializationSettings initializationSettings = InitializationSettings(
+      android: initializationSettingsAndroid,
+      iOS: initializationSettingsDarwin,
+      linux: initializationSettingsLinux,
+    );
+    _flutterLocalNotificationsPlugin.initialize(initializationSettings,
+        onDidReceiveNotificationResponse: onNotificationTap,
+        onDidReceiveBackgroundNotificationResponse: onNotificationTap);
+  }
+
+  static notificationDetails() {
     return const NotificationDetails(
-      android: AndroidNotificationDetails(
-        'channelId',
-        'channelName',
-        // groupKey: "Common Message",
-        importance: Importance.max,
-      ),
+      android: AndroidNotificationDetails('channelId', 'channelName',
+          importance: Importance.max, priority: Priority.high, ticker: 'ticker'),
       iOS: DarwinNotificationDetails(),
     );
   }
 
-//Show a notification with an optional payload that will be passed back to the app when a notification is tapped.
-  Future showNotification({int id = 0, String? title, String? body, String? payLoad}) async {
-    return notificationsPlugin.show(id, title, body, notificationDetails());
+//Simple notification
+  static Future showSimpleNotification({
+    required String title,
+    required String body,
+    required String payload,
+  }) async {
+    const AndroidNotificationDetails androidNotificationDetails = AndroidNotificationDetails(
+        'your channel id', 'your channel name',
+        channelDescription: 'your channel description',
+        importance: Importance.max,
+        priority: Priority.high,
+        ticker: 'ticker');
+    const NotificationDetails notificationDetails = NotificationDetails(android: androidNotificationDetails);
+    await _flutterLocalNotificationsPlugin.show(
+      0,
+      title,
+      body,
+      notificationDetails,
+      payload: payload,
+    );
   }
 
   // Future<void> checkNotificationAppLaunchDetails() async {
   //   InitializationSettings initializationSettings = const InitializationSettings(
   //     android: AndroidInitializationSettings('@drawable/launch_background'),
   //   );
-  //   await notificationsPlugin.initialize(initializationSettings);
+  //   await _flutterLocalNotificationsPlugin.initialize(initializationSettings);
 
-  //   NotificationAppLaunchDetails? launchDetails = await notificationsPlugin.getNotificationAppLaunchDetails();
+  //   NotificationAppLaunchDetails? launchDetails = await _flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails();
 
   //   if (launchDetails!.didNotificationLaunchApp) {
   //     print('The app was launched via notification!');
@@ -59,8 +77,7 @@ class NotificationService {
   // }
 
   Future<void> checkActiveNotifications() async {
-    //List<ActiveNotification> activeNotifications = await notificationsPlugin.getActiveNotifications();
-    pendingNotification = await notificationsPlugin.pendingNotificationRequests();
+    pendingNotification = await _flutterLocalNotificationsPlugin.pendingNotificationRequests();
     print('length ${pendingNotification.length}');
     for (PendingNotificationRequest notification in pendingNotification) {
       print('Id: ${notification.id}');
@@ -71,18 +88,21 @@ class NotificationService {
     }
   }
 
+ 
   Future scheduleNotificationCancelAll() async {
-    return notificationsPlugin.cancelAll();
+    return _flutterLocalNotificationsPlugin.cancelAll();
   }
+  
+  // ScheduleNotification
 
-  Future scheduleNotification({
+  static void scheduleNotification({
     String? title,
     String? body,
     String? payLoad,
     required DateTime scheduledNotificationDateTime,
   }) async {
-    pendingNotification = await notificationsPlugin.pendingNotificationRequests();
-    return notificationsPlugin.zonedSchedule(
+    pendingNotification = await _flutterLocalNotificationsPlugin.pendingNotificationRequests();
+    return _flutterLocalNotificationsPlugin.zonedSchedule(
       (pendingNotification.isEmpty ? 0 : pendingNotification.last.id) + 1,
       title,
       body,
@@ -91,9 +111,17 @@ class NotificationService {
         tz.local,
       ),
       await notificationDetails(),
-      // ignore: deprecated_member_use
-      androidAllowWhileIdle: true,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      payload: payLoad,
       uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
     );
+  }
+
+  static Future cancel(int id) async {
+    await _flutterLocalNotificationsPlugin.cancel(id);
+  }
+
+  static Future cancelAll() async {
+    await _flutterLocalNotificationsPlugin.cancelAll();
   }
 }

@@ -2,20 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:flutter_datetime_picker_bdaya/flutter_datetime_picker_bdaya.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
-
 import 'package:notifications/view/servies.dart';
 
-class HomeNotifications extends StatefulWidget {
-  const HomeNotifications({super.key});
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
 
   @override
-  State<HomeNotifications> createState() => _HomeNotificationsState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeNotificationsState extends State<HomeNotifications> {
+class _HomeScreenState extends State<HomeScreen> {
   List<DateTime> scheduledTimes = [];
   DateTime selectScheduledTimes = DateTime.now();
   bool isscheduled = false;
+  @override
+  void initState() {
+    listenToNotifications();
+    super.initState();
+  }
+
+  listenToNotifications() {
+    NotificationService.onClickNotification.stream.listen((event) {
+      Navigator.of(context).pushNamed('/another', arguments: event);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,17 +54,15 @@ class _HomeNotificationsState extends State<HomeNotifications> {
             text: "Schedule notifications"),
         commonButton(
           onPressed: () {
-            NotificationService().showNotification(
-              title: "Flutter Devloper",
-              body: "It working",
-            );
+            NotificationService.showSimpleNotification(
+                title: "Flutter Devloper", body: "It working", payload: 'This is simple data');
           },
           icon: Icons.notifications,
           text: "Instance Notification",
         ),
         commonButton(
           onPressed: () {
-            clearScheduledTimes();
+            // clearScheduledTimes();
             NotificationService().scheduleNotificationCancelAll();
           },
           icon: Icons.cancel,
@@ -95,20 +103,15 @@ class _HomeNotificationsState extends State<HomeNotifications> {
           ),
         ),
       );
-      NotificationService().scheduleNotification(
-        title: 'Scheduled Notification',
-        body: '$selectScheduledTimes',
-        scheduledNotificationDateTime: selectScheduledTimes,
-      );
+      NotificationService.scheduleNotification(
+          title: 'Scheduled Notification',
+          body: "Drink Water Agian",
+          // body: '$selectScheduledTimes',
+          scheduledNotificationDateTime: selectScheduledTimes,
+          payLoad: "This is schedulaNotification");
     } else {
       debugPrint('Scheduled time $selectScheduledTimes is not in the future');
     }
-  }
-
-  void clearScheduledTimes() {
-    setState(() {
-      scheduledTimes.clear();
-    });
   }
 }
 
